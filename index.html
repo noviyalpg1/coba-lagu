@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>RIANG - Belajar Menyenangkan</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- Babel -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        .delay-1 { animation-delay: 0.1s; opacity: 0; }
+        .delay-2 { animation-delay: 0.2s; opacity: 0; }
+        .delay-3 { animation-delay: 0.3s; opacity: 0; }
+        @keyframes fadeIn { 
+            from { opacity: 0; transform: translateY(10px); } 
+            to { opacity: 1; transform: translateY(0); } 
+        }
+        /* Animasi rotasi untuk ikon musik saat menyala */
+        .spin-slow { animation: spin 3s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        function App() {
+            // States Navigasi
+            const [activeTab, setActiveTab] = React.useState('home');
+            const [adminTab, setAdminTab] = React.useState('testimoni');
+            
+            // State Musik Latar
+            const [isPlaying, setIsPlaying] = React.useState(false);
+            const audioRef = React.useRef(null);
+            
+            // State Statistik (Data Dummy)
+            const [stats] = React.useState({
+                totalContent: 1245,
+                totalContributors: 87,
+                totalPoints: 15430
+            });
+
+            // State Testimoni
+            const [editTestiId, setEditTestiId] = React.useState(null);
+            const [formTesti, setFormTesti] = React.useState({ name: '', role: '', rating: 5, quote: '' });
+            const [testimonials, setTestimonials] = React.useState([
+                { id: 1, name: 'Budi Santoso', role: 'Siswa', rating: 5, quote: 'Belajar di sini sangat menyenangkan dan mudah dipahami!' },
+                { id: 2, name: 'Siti Aminah', role: 'Orang Tua', rating: 5, quote: 'Anak saya jadi lebih rajin belajar berkat aplikasi ini.' }
+            ]);
+
+            const navItems = [
+                { id: 'home', icon: 'fas fa-home', label: 'Beranda' },
+                { id: 'admin', icon: 'fas fa-cog', label: 'Admin' }
+            ];
+
+            // Handler Musik Latar
+            const toggleMusic = () => {
+                if (isPlaying) {
+                    audioRef.current.pause();
+                } else {
+                    // Promise untuk menangani error jika browser memblokir play
+                    audioRef.current.play().catch(error => {
+                        console.log("Pemutaran otomatis diblokir oleh browser:", error);
+                    });
+                }
+                setIsPlaying(!isPlaying);
+            };
+
+            // Handlers Testimoni
+            const handleTestiSubmit = (e) => {
+                e.preventDefault();
+                if (editTestiId) {
+                    setTestimonials(testimonials.map(t => t.id === editTestiId ? { ...formTesti, id: editTestiId } : t));
+                    setEditTestiId(null);
+                } else {
+                    setTestimonials([...testimonials, { ...formTesti, id: Date.now() }]);
+                }
+                setFormTesti({ name: '', role: '', rating: 5, quote: '' });
+            };
+
+            const requestDelete = (type, id) => {
+                if(type === 'testimoni') {
+                    if(confirm('Apakah Anda yakin ingin menghapus testimoni ini?')) {
+                        setTestimonials(testimonials.filter(t => t.id !== id));
+                    }
+                }
+            };
+
+            // Helper untuk format angka
+            const formatNumber = (num) => {
+                return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+            };
+
+            return (
+                <div className="min-h-screen font-sans pb-20 md:pb-0 flex flex-col">
+                    {/* Elemen Audio Tersembunyi - Menggunakan lagu kebangsaan Indonesia Raya */}
+                    <audio ref={audioRef} loop>
+                        <source src="indonesia-raya.mp3" type="audio/mpeg" />
+                    </audio>
+
+                    {/* Header */}
+                    <header className="bg-white p-4 shadow-sm border-b border-slate-200 sticky top-0 z-40">
+                        <div className="max-w-4xl mx-auto flex justify-between items-center">
+                            
+                            {/* Logo & Tombol Musik */}
+                            <div className="flex items-center gap-3">
+                                <h1 className="font-black text-xl text-blue-600 tracking-tight">RIANG</h1>
+                                <button 
+                                    onClick={toggleMusic} 
+                                    className={`w-8 h-8 flex items-center justify-center rounded-full transition-all duration-300 ${isPlaying ? 'bg-blue-100 text-blue-600 shadow-inner' : 'bg-slate-50 text-slate-400 hover:bg-slate-100'}`}
+                                    title={isPlaying ? "Matikan Musik" : "Nyalakan Musik"}
+                                >
+                                    <i className={`fas ${isPlaying ? 'fa-music spin-slow' : 'fa-volume-mute'}`}></i>
+                                </button>
+                            </div>
+
+                            {/* Navigasi Desktop */}
+                            <div className="hidden md:flex gap-4">
+                                {navItems.map(item => (
+                                    <button 
+                                        key={item.id} 
+                                        onClick={() => setActiveTab(item.id)}
+                                        className={`font-bold text-sm transition-colors py-2 px-3 rounded-lg ${activeTab === item.id ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`}
+                                    >
+                                        <i className={`${item.icon} mr-2`}></i>{item.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    </header>
+
+                    {/* Main Content */}
+                    <main className="max-w-4xl mx-auto w-full p-4 md:p-8 flex-grow">
+                        
+                        {/* TAB BERANDA & STATISTIK */}
+                        {activeTab === 'home' && (
+                            <div className="space-y-6">
+                                {/* Banner Selamat Datang */}
+                                <div className="fade-in bg-white p-8 rounded-2xl shadow-sm border border-slate-200 text-center relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-blue-50 rounded-full opacity-50"></div>
+                                    <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-16 h-16 bg-orange-50 rounded-full opacity-50"></div>
+                                    <h2 className="text-2xl md:text-3xl font-black mb-2 text-slate-800 relative z-10">Selamat Datang di RIANG</h2>
+                                    <p className="text-slate-500 relative z-10">Platform berbagi dan belajar yang menyenangkan untuk semua.</p>
+                                </div>
+
+                                {/* Bagian Statistik */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="fade-in delay-1 bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4 hover:border-blue-300 hover:shadow-md transition-all cursor-default">
+                                        <div className="w-14 h-14 rounded-full bg-blue-50 text-blue-500 flex items-center justify-center text-2xl shrink-0">
+                                            <i className="fas fa-photo-video"></i>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-slate-500 font-semibold mb-0.5">Total Konten</p>
+                                            <h3 className="text-2xl font-black text-slate-800 leading-none">{formatNumber(stats.totalContent)}</h3>
+                                        </div>
+                                    </div>
+
+                                    <div className="fade-in delay-2 bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4 hover:border-green-300 hover:shadow-md transition-all cursor-default">
+                                        <div className="w-14 h-14 rounded-full bg-green-50 text-green-500 flex items-center justify-center text-2xl shrink-0">
+                                            <i className="fas fa-users"></i>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-slate-500 font-semibold mb-0.5">Kontributor</p>
+                                            <h3 className="text-2xl font-black text-slate-800 leading-none">{formatNumber(stats.totalContributors)}</h3>
+                                        </div>
+                                    </div>
+
+                                    <div className="fade-in delay-3 bg-white p-5 rounded-2xl shadow-sm border border-slate-200 flex items-center gap-4 hover:border-orange-300 hover:shadow-md transition-all cursor-default">
+                                        <div className="w-14 h-14 rounded-full bg-orange-50 text-orange-500 flex items-center justify-center text-2xl shrink-0">
+                                            <i className="fas fa-medal"></i>
+                                        </div>
+                                        <div>
+                                            <p className="text-sm text-slate-500 font-semibold mb-0.5">Poin Terkumpul</p>
+                                            <h3 className="text-2xl font-black text-slate-800 leading-none">{formatNumber(stats.totalPoints)}</h3>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Bagian Video Pembelajaran */}
+                                <div className="fade-in bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-slate-200">
+                                    <h3 className="font-black text-lg text-slate-800 mb-4 flex items-center gap-2">
+                                        <i className="fas fa-play-circle text-blue-500"></i>
+                                        Video Pembelajaran Interaktif
+                                    </h3>
+                                    <div className="relative w-full rounded-xl overflow-hidden bg-slate-900 aspect-video shadow-inner">
+                                        {/* Menambahkan ?playsinline=1&modestbranding=1&rel=0 agar video diputar di dalam web (inline) */}
+                                        <iframe 
+                                            className="w-full h-full absolute top-0 left-0" 
+                                            src="https://www.youtube.com/embed/GCoNenNnOzI?playsinline=1&modestbranding=1&rel=0" 
+                                            title="Video Pembelajaran" 
+                                            frameBorder="0" 
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                                            allowFullScreen>
+                                        </iframe>
+                                    </div>
+                                    <p className="text-sm text-slate-500 mt-3 font-medium">Saksikan cuplikan materi belajar 3D interaktif yang menakjubkan ini.</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* TAB ADMIN */}
+                        {activeTab === 'admin' && (
+                            <div className="fade-in bg-white rounded-2xl shadow-sm border border-slate-200 p-4 md:p-6">
+                                <h2 className="text-xl font-bold text-slate-800 mb-4">Panel Admin</h2>
+
+                                <div className="flex gap-2 mb-6 border-b border-slate-100 pb-2">
+                                    <button 
+                                        onClick={() => setAdminTab('testimoni')} 
+                                        className={`px-4 py-2 rounded-lg font-bold text-sm transition-colors ${adminTab === 'testimoni' ? 'bg-blue-50 text-blue-600' : 'text-slate-500 hover:bg-slate-50'}`}
+                                    >
+                                        Kelola Testimoni
+                                    </button>
+                                </div>
+
+                                {adminTab === 'testimoni' && (
+                                    <div className="fade-in">
+                                        <h3 className="font-black text-base md:text-lg text-slate-800 mb-4 flex items-center gap-2">
+                                            <i className="fas fa-comment-medical text-blue-500"></i>
+                                            {editTestiId ? 'Edit Testimoni' : 'Tambah Testimoni'}
+                                        </h3>
+
+                                        <form onSubmit={handleTestiSubmit} className="space-y-3 mb-8">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                <input required type="text" placeholder="Nama" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400 focus:bg-white transition-colors" value={formTesti.name} onChange={e => setFormTesti({...formTesti, name: e.target.value})} />
+                                                <input required type="text" placeholder="Peran (Siswa/Guru/Orang Tua)" className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400 focus:bg-white transition-colors" value={formTesti.role} onChange={e => setFormTesti({...formTesti, role: e.target.value})} />
+                                            </div>
+                                            <textarea required placeholder="Tulis testimoni di sini..." className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm outline-none focus:border-blue-400 focus:bg-white transition-colors h-24 resize-none" value={formTesti.quote} onChange={e => setFormTesti({...formTesti, quote: e.target.value})}></textarea>
+                                            <div className="flex justify-end gap-2">
+                                                {editTestiId && (
+                                                    <button type="button" onClick={() => {setEditTestiId(null); setFormTesti({name:'', role:'', rating:5, quote:''})}} className="px-4 py-2 rounded-xl text-sm font-bold bg-slate-100 text-slate-600 hover:bg-slate-200">
+                                                        Batal
+                                                    </button>
+                                                )}
+                                                <button type="submit" className="px-4 py-2 rounded-xl text-sm font-bold bg-blue-600 text-white shadow-sm hover:bg-blue-700 transition-colors">
+                                                    {editTestiId ? 'Simpan Perubahan' : 'Tambah Testimoni'}
+                                                </button>
+                                            </div>
+                                        </form>
+
+                                        <h3 className="font-black text-base md:text-lg text-slate-800 mb-3 border-t border-slate-100 pt-5">Daftar Testimoni</h3>
+                                        {testimonials.length === 0 ? (
+                                            <p className="text-center text-slate-400 text-sm py-4">Belum ada testimoni.</p>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                {testimonials.map(t => (
+                                                    <div key={t.id} className="border border-slate-100 p-4 rounded-xl bg-slate-50 hover:border-blue-200 transition-colors">
+                                                        <p className="text-slate-700 italic mb-3 text-sm">"{t.quote}"</p>
+                                                        <div className="flex justify-between items-end">
+                                                            <div>
+                                                                <h4 className="font-bold text-slate-800 text-sm">{t.name}</h4>
+                                                                <p className="text-[11px] text-slate-500">{t.role} • {t.rating} Bintang</p>
+                                                            </div>
+                                                            <div className="flex gap-2">
+                                                                <button onClick={() => { setFormTesti(t); setEditTestiId(t.id); window.scrollTo({top: 0, behavior: 'smooth'}); }} className="px-3 py-1.5 bg-blue-100 text-blue-700 font-bold text-xs rounded-lg active:bg-blue-200">Edit</button>
+                                                                <button onClick={() => requestDelete('testimoni', t.id)} className="px-3 py-1.5 bg-red-100 text-red-700 font-bold text-xs rounded-lg active:bg-red-200">Hapus</button>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </main>
+                    
+                    {/* BAGIAN FOOTER */}
+                    <footer className="w-full mt-auto pt-8 pb-8 border-t border-slate-200 flex flex-col items-center justify-center gap-4 bg-white shadow-[0_-4px_20px_rgba(0,0,0,0.02)] relative z-10">
+                        <div className="flex gap-4 mb-1">
+                            <a href="#" className="w-9 h-9 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all">
+                                <i className="fab fa-instagram"></i>
+                            </a>
+                            <a href="#" className="w-9 h-9 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all">
+                                <i className="fab fa-facebook-f"></i>
+                            </a>
+                            <a href="#" className="w-9 h-9 rounded-full bg-slate-50 border border-slate-100 flex items-center justify-center text-slate-400 hover:bg-blue-50 hover:text-blue-600 hover:border-blue-200 transition-all">
+                                <i className="fab fa-youtube"></i>
+                            </a>
+                        </div>
+                        
+                        <p className="text-xs text-slate-400 font-medium text-center px-4">
+                            &copy; {new Date().getFullYear()} RIANG - Belajar Menyenangkan.
+                        </p>
+
+                        <div className="text-[11px] text-slate-500 flex items-center justify-center gap-1.5 bg-slate-50 border border-slate-100 px-4 py-2.5 rounded-full shadow-sm">
+                            <span>Dibuat dengan</span>
+                            <i className="fas fa-heart text-red-500 animate-pulse"></i>
+                            <span>oleh</span>
+                            <a href="https://s.id/studiolpg" target="_blank" rel="noopener noreferrer" className="font-bold text-slate-700 hover:text-blue-600 transition-colors">
+                                Studio LPG
+                            </a>
+                        </div>
+                    </footer>
+
+                    {/* BOTTOM NAVIGATION MOBILE */}
+                    <nav className="md:hidden fixed bottom-0 w-full bg-white border-t border-slate-200 flex justify-around items-center px-1 pb-safe pt-1.5 z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)]">
+                        {navItems.map(item => (
+                            <button 
+                                key={item.id} 
+                                onClick={() => setActiveTab(item.id)} 
+                                className={`flex flex-col items-center justify-center w-full py-2 transition-colors ${activeTab === item.id ? 'text-blue-600' : 'text-slate-400'}`}
+                            >
+                                <i className={`${item.icon} text-lg mb-1`}></i>
+                                <span className="text-[10px] font-bold">{item.label}</span>
+                            </button>
+                        ))}
+                    </nav>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
